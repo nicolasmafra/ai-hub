@@ -7,7 +7,22 @@
 
 <body>
     <h1>Em Desenvolvimento...</h1>
+    <button onclick="login()">Login com Google</button>
     <script>
+        const CLIENT_ID = '878462955038-smkucjds07i34a7app4nik16r3gu16p3.apps.googleusercontent.com';
+        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+
+        function login() {
+            const redirectUri = 'https://nicolasmafra.github.io/ai-hub/chat';
+            const authUrl =
+                `https://accounts.google.com/o/oauth2/v2/auth?` +
+                `client_id=${CLIENT_ID}` +
+                `&redirect_uri=${redirectUri}` +
+                `&response_type=token` +
+                `&scope=${SCOPES}`;
+            window.location.href = authUrl;
+        }
+
         window.onload = () => {
             const hash = window.location.hash;
             if (hash.includes("access_token")) {
