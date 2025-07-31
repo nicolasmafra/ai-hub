@@ -10,9 +10,13 @@
   <h1>Em Desenvolvimento...</h1>
   <div id="loginButton"></div>
 
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script>
+  <script
+    src="https://accounts.google.com/gsi/client"
+    async defer
+    onload="initGoogleAPI()"
+  ></script>
 
+  <script>
     function initGoogleAPI() {
       google.accounts.id.initialize({
         client_id: '878462955038-smkucjds07i34a7app4nik16r3gu16p3.apps.googleusercontent.com',
@@ -39,8 +43,6 @@
         .then(data => console.log("Arquivos:", data))
         .catch(error => console.error("Erro ao listar arquivos:", error));
     }
-
-    initGoogleAPI();
   </script>
 </body>
 
