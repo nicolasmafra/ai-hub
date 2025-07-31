@@ -13,7 +13,7 @@
         const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 
         function login() {
-            const redirectUri = window.location.origin;
+            const redirectUri = 'https://nicolasmafra.github.io/ai-hub/oauth2-callback';
             const authUrl =
                 `https://accounts.google.com/o/oauth2/v2/auth?` +
                 `client_id=${CLIENT_ID}` +
@@ -22,20 +22,6 @@
                 `&scope=${SCOPES}`;
             window.location.href = authUrl;
         }
-
-        window.onload = () => {
-            const hash = window.location.hash;
-            if (hash.includes("access_token")) {
-                const token = new URLSearchParams(hash.slice(1)).get("access_token");
-                console.log("Token:", token);
-                // Exemplo: listar arquivos criados pelo app
-                fetch("https://www.googleapis.com/drive/v3/files", {
-                    headers: { Authorization: "Bearer " + token }
-                })
-                    .then(res => res.json())
-                    .then(data => console.log(data));
-            }
-        };
     </script>
 </body>
 </html>
