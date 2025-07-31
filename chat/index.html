@@ -8,36 +8,34 @@
 <body>
   <a href="../">Back</a>
   <h1>Em Desenvolvimento...</h1>
-  
-    <script src="https://accounts.google.com/gsi/client" async></script>
-    <div id="g_id_onload"
-        data-client_id="878462955038-smkucjds07i34a7app4nik16r3gu16p3.apps.googleusercontent.com"
-        data-callback="onSignIn"
-        data-auto_prompt="false">
-    </div>
-    <div class="g_id_signin"
-        data-type="standard"
-        data-size="large"
-        data-theme="outline"
-        data-text="sign_in_with"
-        data-shape="rectangular"
-        data-logo_alignment="left">
-    </div>
+
+  <button id="gdriveBtn" disabled>Connect to Google Drive</button>
+  <script
+    src="https://accounts.google.com/gsi/client"
+    async
+    defer
+    onload="onGoogleScriptLoad()"
+  ></script>
 
   <script>
-    function onSignIn(response) {
-      google.accounts.oauth2.initTokenClient({
+    let tokenClient;
+
+    function onGoogleScriptLoad() {
+      tokenClient = google.accounts.oauth2.initTokenClient({
         client_id: '878462955038-smkucjds07i34a7app4nik16r3gu16p3.apps.googleusercontent.com',
         scope: 'https://www.googleapis.com/auth/drive.file',
         callback: handleTokenResponse,
-      }).requestAccessToken();
+      });
+
+      document.getElementById('gdriveBtn').onclick = function () {
+        tokenClient.requestAccessToken();
+      };
+      document.getElementById('gdriveBtn').disabled = false;
     }
 
     function handleTokenResponse(response) {
       if (response.access_token) {
         console.log("Access Token:", response.access_token);
-
-        // listar arquivos do app
         fetch("https://www.googleapis.com/drive/v3/files", {
           headers: {
             Authorization: "Bearer " + response.access_token
