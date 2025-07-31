@@ -2,41 +2,39 @@
 <html>
 
 <head>
-    <title>AI Hub</title>
+  <title>AI Hub</title>
 </head>
 
 <body>
-    <a href="../">Back</a>
-    <h1>Em Desenvolvimento...</h1>
-    <button onclick="login()">Login com Google</button>
-    <script>
-        const CLIENT_ID = '878462955038-smkucjds07i34a7app4nik16r3gu16p3.apps.googleusercontent.com';
-        const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+  <a href="../">Back</a>
+  <h1>Em Desenvolvimento...</h1>
+  <button onclick="initGoogleAPI()">Autenticar com Google</button>
 
-        function login() {
-            const redirectUri = 'https://nicolasmafra.github.io/ai-hub/chat';
-            const authUrl =
-                `https://accounts.google.com/o/oauth2/v2/auth?` +
-                `client_id=${CLIENT_ID}` +
-                `&redirect_uri=${redirectUri}` +
-                `&response_type=token` +
-                `&scope=${SCOPES}`;
-            window.location.href = authUrl;
-        }
+  <script src="https://apis.google.com/js/api.js"></script>
+  <script>
+    async function initGoogleAPI() {
+      await gapi.load('client:auth2');
 
-        window.onload = () => {
-            const hash = window.location.hash;
-            if (hash.includes("access_token")) {
-                const token = new URLSearchParams(hash.slice(1)).get("access_token");
-                console.log("Token:", token);
-                // Exemplo: listar arquivos criados pelo app
-                fetch("https://www.googleapis.com/drive/v3/files", {
-                    headers: { Authorization: "Bearer " + token }
-                })
-                    .then(res => res.json())
-                    .then(data => console.log(data));
-            }
-        };
-    </script>
+      await gapi.auth2.init({
+        client_id: '878462955038-smkucjds07i34a7app4nik16r3gu16p3.apps.googleusercontent.com',
+        scope: 'https://www.googleapis.com/auth/drive.file'
+      });
+
+      const authInstance = gapi.auth2.getAuthInstance();
+
+      authInstance.signIn().then(googleUser => {
+        const accessToken = googleUser.getAuthResponse().access_token;
+        console.log("Token:", accessToken);
+
+        // Exemplo: listar arquivos do app
+        fetch("https://www.googleapis.com/drive/v3/files", {
+          headers: { Authorization: "Bearer " + accessToken }
+        })
+          .then(res => res.json())
+          .then(data => console.log("Arquivos:", data));
+      });
+    }
+  </script>
 </body>
+
 </html>
