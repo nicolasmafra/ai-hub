@@ -1,0 +1,30 @@
+let tokenClient;
+
+function onGoogleScriptLoad() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: '878462955038-smkucjds07i34a7app4nik16r3gu16p3.apps.googleusercontent.com',
+    scope: 'https://www.googleapis.com/auth/drive.file',
+    callback: handleTokenResponse,
+  });
+
+  document.getElementById('gdriveBtn').onclick = function () {
+    tokenClient.requestAccessToken();
+  };
+  document.getElementById('gdriveBtn').disabled = false;
+}
+
+function handleTokenResponse(response) {
+  if (response.access_token) {
+    console.log("Access Token:", response.access_token);
+    fetch("https://www.googleapis.com/drive/v3/files", {
+      headers: {
+        Authorization: "Bearer " + response.access_token
+      }
+    })
+      .then(res => res.json())
+      .then(data => console.log("Arquivos:", data))
+      .catch(error => console.error("Erro ao listar arquivos:", error));
+  } else {
+    console.error("Erro ao obter access_token:", response);
+  }
+}

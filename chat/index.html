@@ -9,45 +9,212 @@
   <a href="../">Back</a>
   <h1>Em Desenvolvimento...</h1>
 
-  <button id="gdriveBtn" disabled>Connect to Google Drive</button>
+  <br />
+
+  <label for="chatModelProviderList">Provedor de Chat Model:</label>
+  <select name="chatModelProviderList" id="chatModelProviderList">
+    <option value="">Selecione o Provedor de Chat Model</option>
+  </select>
+
+  <br />
+
+  <label for="modelList">LLM:</label>
+  <select name="modelList" id="modelList" disabled>
+    <option value="">Selecione o LLM</option>
+  </select>
+
+  <br />
+
+  <label for="chatModelProviderApiKey">API Key do Provedor:</label>
+  <input id="chatModelProviderApiKey" disabled type="password" />
+
+  <br />
+
+  <button id="localStorageBtn">Salvar no navegador</button>
+  <br />
+  <button id="gdriveBtn" disabled>Salvar no Google Drive (Não está pronto)</button>
+
+  <br />
+
+  <button id="chatModelProviderStartBtn" disabled>Start!</button>
+
+  <div id="chat">
+    <h2>Chat</h2>
+    <div id="chatMessages"></div>
+    <input id="chatInput" disabled type="text" placeholder="Type your message here..." />
+    <button id="sendMessageBtn" disabled>Send</button>
+  </div>
+
+  <script src="./drive-plugin.js"></script>
   <script
     src="https://accounts.google.com/gsi/client"
     async
     defer
     onload="onGoogleScriptLoad()"
   ></script>
+  <style type="text/css">
+    #chatMessages {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #ccc;
+      padding: 10px;
+      height: 300px;
+      overflow-y: auto;
+    }
+    .user-message {
+      align-self: flex-end;
+      display: flex;
+      background-color: #D0D0D0;
+      padding: 12px 16px;
+      border-radius: 18px;
+    }
+    .assistant-message {
+    }
+  </style>
 
-  <script>
-    let tokenClient;
+  <script type="module">
+    import { listChatModels, listModels, instanceChatModel } from './chat-model-provider.js';
+    import { marked } from "https://cdn.jsdelivr.net/npm/marked/lib/marked.esm.js";
 
-    function onGoogleScriptLoad() {
-      tokenClient = google.accounts.oauth2.initTokenClient({
-        client_id: '878462955038-smkucjds07i34a7app4nik16r3gu16p3.apps.googleusercontent.com',
-        scope: 'https://www.googleapis.com/auth/drive.file',
-        callback: handleTokenResponse,
+    const chatModelProviderList = document.getElementById('chatModelProviderList');
+    const modelList = document.getElementById('modelList');
+    const chatModelProviderApiKey = document.getElementById('chatModelProviderApiKey');
+    const chatModelProviderStartBtn = document.getElementById('chatModelProviderStartBtn');
+    const chatMessages = document.getElementById('chatMessages');
+    const chatInput = document.getElementById('chatInput');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+
+    var messages = [];
+
+    function appendOption(selectElement, value, text) {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = text;
+      selectElement.appendChild(option);
+    }
+
+    function startChat() {
+      window.chatModel = instanceChatModel(chatModelProviderList.value, modelList.value, chatModelProviderApiKey.value);
+      chatInput.disabled = false;
+      sendMessageBtn.disabled = false;
+      refreshMessages();
+    }
+
+    listChatModels().forEach(chatModel => {
+      const option = document.createElement('option');
+      option.value = chatModel.code;
+      option.textContent = chatModel.name;
+      chatModelProviderList.appendChild(option);
+    });
+
+    // load from local storage if available
+    const savedChatData = localStorage.getItem('chatData');
+    if (savedChatData) {
+      const chatData = JSON.parse(savedChatData);
+      chatModelProviderList.value = chatData.chatModelCode;
+      modelList.disabled = false;
+      appendOption(modelList, chatData.modelCode, chatData.modelCode);
+      modelList.value = chatData.modelCode;
+      chatModelProviderApiKey.disabled = false;
+      chatModelProviderApiKey.value = chatData.apiKey;
+      chatModelProviderStartBtn.disabled = false;
+      messages = chatData.messages || [];
+      startChat();
+    }
+
+    chatModelProviderList.addEventListener('change', (event) => {
+      const selectedChatModel = event.target.value;
+      modelList.innerHTML = '<option value="">Select LLM</option>';
+      listModels(selectedChatModel).forEach(model => {
+        appendOption(modelList, model.code, model.name);
       });
+      modelList.disabled = false;
+    });
 
-      document.getElementById('gdriveBtn').onclick = function () {
-        tokenClient.requestAccessToken();
+    modelList.addEventListener('change', (event) => {
+      const selectedModel = event.target.value;
+      chatModelProviderApiKey.disabled = !selectedModel;
+      chatModelProviderStartBtn.disabled = !selectedModel;
+    });
+
+    function saveToLocalStorage() {
+      const chatModelCode = chatModelProviderList.value;
+      const modelCode = modelList.value;
+      const apiKey = chatModelProviderApiKey.value;
+      const chatData = {
+        chatModelCode,
+        modelCode,
+        apiKey,
+        messages,
       };
-      document.getElementById('gdriveBtn').disabled = false;
+      localStorage.setItem('chatData', JSON.stringify(chatData));
+    }
+    localStorageBtn.addEventListener('click', () => {
+      const chatModelCode = chatModelProviderList.value;
+      const modelCode = modelList.value;
+      const apiKey = chatModelProviderApiKey.value;
+      if (!chatModelCode || !modelCode || !apiKey) {
+        alert('Please select a chat model, model, and provide an API key.');
+        return;
+      }
+      saveToLocalStorage();
+      alert('Chat data saved to local storage.');
+    });
+
+    chatModelProviderStartBtn.addEventListener('click', () => {
+      const chatModelCode = chatModelProviderList.value;
+      const modelCode = modelList.value;
+      const apiKey = chatModelProviderApiKey.value;
+      if (!chatModelCode || !modelCode || !apiKey) {
+        alert('Please select a chat model, model, and provide an API key.');
+        return;
+      }
+      messages = [];
+      startChat();
+    });
+
+    function refreshMessages() {
+      chatMessages.innerHTML = '';
+      messages.forEach(message => {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = message.role === 'user' ? 'user-message' : 'assistant-message';
+        messageDiv.innerHTML = message.role === 'user' ? message.content : marked.parse(message.content);
+        chatMessages.appendChild(messageDiv);
+      });
     }
 
-    function handleTokenResponse(response) {
-      if (response.access_token) {
-        console.log("Access Token:", response.access_token);
-        fetch("https://www.googleapis.com/drive/v3/files", {
-          headers: {
-            Authorization: "Bearer " + response.access_token
-          }
-        })
-          .then(res => res.json())
-          .then(data => console.log("Arquivos:", data))
-          .catch(error => console.error("Erro ao listar arquivos:", error));
-      } else {
-        console.error("Erro ao obter access_token:", response);
-      }
+    function appendEllipsisTag() {
+      const ellipsisTag = document.createElement('span');
+      ellipsisTag.textContent = '...';
+      ellipsisTag.style.color = 'gray';
+      chatMessages.appendChild(ellipsisTag);
     }
+
+    sendMessageBtn.addEventListener('click', async () => {
+      const message = chatInput.value.trim();
+      if (!message) return;
+
+      messages.push({ role: 'user', content: message });
+      refreshMessages();
+      chatInput.value = '';
+
+      // Get response from chat model
+      try {
+        sendMessageBtn.disabled = true;
+        appendEllipsisTag();
+        const response = await window.chatModel.invoke(messages);
+        messages.push({ role: 'assistant', content: response.content });
+        refreshMessages();
+        if (localStorage.getItem('chatData')) {
+          saveToLocalStorage();
+        }
+      } catch (error) {
+        console.error('Error getting response:', error);
+        alert('Failed to get response from the chat model.');
+      } finally {
+        sendMessageBtn.disabled = false;
+      }
+    });
   </script>
 </body>
 
